@@ -1,7 +1,8 @@
-package com.example.dog_inder
+package com.example.dog_inder.controller
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import com.example.dog_inder.R
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
