@@ -1,16 +1,19 @@
 package com.example.dog_inder.ui.home
 
+import android.Manifest
 import android.os.Bundle
 import android.util.Log
-import androidx.fragment.app.Fragment
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
-import com.example.dog_inder.R
-import androidx.activity.result.contract.ActivityResultContracts
-import android.Manifest
 import android.widget.EditText
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
+import com.example.dog_inder.R
 import org.koin.androidx.viewmodel.ext.android.viewModel
+
 
 class HomeFragment : Fragment() {
 
@@ -49,5 +52,13 @@ class HomeFragment : Fragment() {
                 }
             })
         }
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        return inflater.inflate(R.layout.fragment_home, container, false)
     }
 }
