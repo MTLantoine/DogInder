@@ -89,8 +89,6 @@ class HomeFragment : Fragment() {
 
             homeViewModel.signIn(mEmailInput.text.toString().trim(), mPasswordInput.text.toString().trim()).observe(viewLifecycleOwner, Observer {
                 it?.let {
-                    println("it")
-                    println(it)
                     it.uid
                 }
             })
