@@ -80,15 +80,17 @@ class HomeFragment : Fragment() {
         }
 
         mLoginBtn.setOnClickListener{
-            permissionResultLauncher.launch(
-                    arrayOf(
-                            Manifest.permission.READ_EXTERNAL_STORAGE,
-                            Manifest.permission.WRITE_EXTERNAL_STORAGE
-                    )
-            )
+//            permissionResultLauncher.launch(
+//                    arrayOf(
+//                            Manifest.permission.READ_EXTERNAL_STORAGE,
+//                            Manifest.permission.WRITE_EXTERNAL_STORAGE
+//                    )
+//            )
 
-            homeViewModel.signUp(mEmailInput.text.toString().trim(), mPasswordInput.text.toString().trim()).observe(viewLifecycleOwner, Observer {
+            homeViewModel.signIn(mEmailInput.text.toString().trim(), mPasswordInput.text.toString().trim()).observe(viewLifecycleOwner, Observer {
                 it?.let {
+                    println("it")
+                    println(it)
                     it.uid
                 }
             })
