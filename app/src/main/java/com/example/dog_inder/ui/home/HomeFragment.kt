@@ -9,8 +9,12 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.MediatorLiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
+import androidx.lifecycle.observe
 import com.example.dog_inder.R
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
@@ -32,21 +36,58 @@ class HomeFragment : Fragment() {
         }
     }
 
+    private val emailLiveData = MutableLiveData<String>()
+    private val passwordLiveData = MutableLiveData<String>()
+
+    private val isValidLiveData = MediatorLiveData<Boolean>().apply {
+        this.value = false
+
+        addSource(emailLiveData) { email ->
+            val password = passwordLiveData.value
+            this.value = validateForm(email, password)
+        }
+
+        addSource(passwordLiveData) { password ->
+            val email = emailLiveData.value
+            this.value = validateForm(email, password)
+        }
+    }
+
+    private fun validateForm(email: String?, password: String?) : Boolean {
+        val isValidEmail = email != null && email.isNotBlank() && email.contains("@")
+        val isValidPassword = password != null && password.isNotBlank() && password.length >= 6
+
+        return isValidEmail && isValidPassword
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        view.findViewById<Button>(R.id.fragment_home_login_btn).setOnClickListener{
+        val mEmailInput = view.findViewById<EditText>(R.id.fragment_home_email_input)
+        val mPasswordInput = view.findViewById<EditText>(R.id.fragment_home_password_input)
+        val mLoginBtn = view.findViewById<Button>(R.id.fragment_home_login_btn)
+
+        mEmailInput.doOnTextChanged { text, _, _, _ ->
+            emailLiveData.value = text?.toString()
+        }
+
+        mPasswordInput.doOnTextChanged { text, _, _, _ ->
+            passwordLiveData.value = text?.toString()
+        }
+
+        isValidLiveData.observe(viewLifecycleOwner) { isValid ->
+            mLoginBtn.isEnabled = isValid
+        }
+
+        mLoginBtn.setOnClickListener{
             permissionResultLauncher.launch(
-                arrayOf(
-                    Manifest.permission.READ_EXTERNAL_STORAGE,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE
-                )
+                    arrayOf(
+                            Manifest.permission.READ_EXTERNAL_STORAGE,
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    )
             )
 
-            val mEmailInput = view.findViewById<EditText>(R.id.fragment_home_email_input)
-            val mPasswordInput = view.findViewById<EditText>(R.id.fragment_home_password_input)
-
-            homeViewModel.signUp(mEmailInput.toString(), mPasswordInput.toString()).observe(viewLifecycleOwner, Observer {
+            homeViewModel.signUp(mEmailInput.text.toString().trim(), mPasswordInput.text.toString().trim()).observe(viewLifecycleOwner, Observer {
                 it?.let {
                     it.uid
                 }
@@ -55,9 +96,9 @@ class HomeFragment : Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
+            inflater: LayoutInflater,
+            container: ViewGroup?,
+            savedInstanceState: Bundle?
     ): View? {
         return inflater.inflate(R.layout.fragment_home, container, false)
     }
