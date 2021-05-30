@@ -16,12 +16,17 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.observe
 import com.example.dog_inder.R
+import com.example.dog_inder.databinding.HomeFragmentBinding
+import com.example.dog_inder.ui.adapter.ListAdapter
+import com.example.dog_inder.utils.fragmentAutoCleared
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 
 class HomeFragment : Fragment() {
 
     private val homeViewModel: HomeViewModel by viewModel()
+    private var _binding: HomeFragmentBinding by fragmentAutoCleared()
+    private var list: MutableList<String> = arrayOf("").toMutableList()
 
     private val permissionResultLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { map ->
         if (!map.values.contains(false)) {
@@ -100,6 +105,9 @@ class HomeFragment : Fragment() {
             container: ViewGroup?,
             savedInstanceState: Bundle?
     ): View? {
+        val adapter = ListAdapter(list)
+        _binding = HomeFragmentBinding.inflate(inflater, container, false)
+        _binding.recyclerView.adapter = adapter
         return inflater.inflate(R.layout.fragment_home, container, false)
     }
 }
