@@ -1,13 +1,11 @@
 package com.example.dog_inder.ui.home
 
-import android.Manifest
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
-import android.widget.EditText
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
@@ -15,9 +13,8 @@ import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.observe
-import com.example.dog_inder.R
 import com.example.dog_inder.databinding.HomeFragmentBinding
-import com.example.dog_inder.ui.adapter.ListAdapter
+import com.example.dog_inder.ui.activities.DashboardActivity
 import com.example.dog_inder.utils.fragmentAutoCleared
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
@@ -26,7 +23,6 @@ class HomeFragment : Fragment() {
 
     private val homeViewModel: HomeViewModel by viewModel()
     private var _binding: HomeFragmentBinding by fragmentAutoCleared()
-    private var list: MutableList<String> = arrayOf("").toMutableList()
 
     private val permissionResultLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { map ->
         if (!map.values.contains(false)) {
@@ -68,23 +64,19 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val mEmailInput = view.findViewById<EditText>(R.id.fragment_home_email_input)
-        val mPasswordInput = view.findViewById<EditText>(R.id.fragment_home_password_input)
-        val mLoginBtn = view.findViewById<Button>(R.id.fragment_home_login_btn)
-
-        mEmailInput.doOnTextChanged { text, _, _, _ ->
+        _binding.fragmentHomeEmailInput.doOnTextChanged { text, _, _, _ ->
             emailLiveData.value = text?.toString()
         }
 
-        mPasswordInput.doOnTextChanged { text, _, _, _ ->
+        _binding.fragmentHomePasswordInput.doOnTextChanged { text, _, _, _ ->
             passwordLiveData.value = text?.toString()
         }
 
         isValidLiveData.observe(viewLifecycleOwner) { isValid ->
-            mLoginBtn.isEnabled = isValid
+            _binding.fragmentHomeLoginBtn.isEnabled = isValid
         }
 
-        mLoginBtn.setOnClickListener{
+        _binding.fragmentHomeLoginBtn.setOnClickListener{
 //            permissionResultLauncher.launch(
 //                    arrayOf(
 //                            Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -92,12 +84,19 @@ class HomeFragment : Fragment() {
 //                    )
 //            )
 
-            homeViewModel.signIn(mEmailInput.text.toString().trim(), mPasswordInput.text.toString().trim()).observe(viewLifecycleOwner, Observer {
+            homeViewModel.signIn(_binding.fragmentHomeEmailInput.text.toString().trim(), _binding.fragmentHomePasswordInput.text.toString().trim()).observe(viewLifecycleOwner, Observer {
                 it?.let {
                     it.uid
+                    navigateDashboard()
                 }
             })
         }
+    }
+
+
+    fun navigateDashboard() {
+        val dashboardActivity = Intent(activity, DashboardActivity::class.java)
+        startActivity(dashboardActivity)
     }
 
     override fun onCreateView(
@@ -105,9 +104,7 @@ class HomeFragment : Fragment() {
             container: ViewGroup?,
             savedInstanceState: Bundle?
     ): View? {
-        val adapter = ListAdapter(list)
         _binding = HomeFragmentBinding.inflate(inflater, container, false)
-        _binding.recyclerView.adapter = adapter
-        return inflater.inflate(R.layout.fragment_home, container, false)
+        return _binding.root
     }
 }
