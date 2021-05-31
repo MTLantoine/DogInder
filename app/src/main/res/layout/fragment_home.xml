@@ -60,6 +60,22 @@
             app:layout_constraintTop_toBottomOf="@+id/fragment_home_password_input"
             app:layout_constraintVertical_bias="0.2" />
 
+        <Button
+            android:id="@+id/fragment_home_change_btn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="10dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
+            android:enabled="false"
+            android:text="Pas encore de compte ? créez en un !"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/fragment_home_login_btn"
+            app:layout_constraintVertical_bias="0.2" />
+
         <ProgressBar
             android:id="@+id/loading"
             android:layout_width="wrap_content"

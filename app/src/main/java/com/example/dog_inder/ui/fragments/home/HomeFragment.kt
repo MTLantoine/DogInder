@@ -20,6 +20,7 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
 
 
 class HomeFragment : Fragment() {
+    private var signin: Boolean = true
 
     private val permissionResultLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { map ->
         if (!map.values.contains(false)) {
@@ -50,8 +51,15 @@ class HomeFragment : Fragment() {
     }
 
     private fun validateForm(email: String?, password: String?) : Boolean {
-        val isValidEmail = email != null && email.isNotBlank() && email.contains("@")
-        val isValidPassword = password != null && password.isNotBlank() && password.length >= 6
+        val isValidEmail: Boolean
+        val isValidPassword: Boolean
+        if (signin) {
+            isValidEmail = email != null && email.isNotBlank()
+            isValidPassword = password != null && password.isNotBlank()
+        } else {
+            isValidEmail = email != null && email.isNotBlank() && email.contains("@")
+            isValidPassword = password != null && password.isNotBlank() && password.length >= 6
+        }
 
         return isValidEmail && isValidPassword
     }
@@ -60,6 +68,19 @@ class HomeFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         askForPermissions()
+
+        _binding.fragmentHomeChangeBtn.isEnabled = true
+        _binding.fragmentHomeChangeBtn.setOnClickListener{
+            if (signin) {
+                _binding.fragmentHomeChangeBtn.text = "Déjà un compte ? Se connecter"
+                _binding.fragmentHomeLoginBtn.text = "Créer un compte"
+            } else {
+                _binding.fragmentHomeChangeBtn.text = "Pas encore de compte ? créez en un !"
+                _binding.fragmentHomeLoginBtn.text = "Se connecter"
+            }
+
+            signin = !signin
+        }
 
         _binding.fragmentHomeEmailInput.doOnTextChanged { text, _, _, _ ->
             emailLiveData.value = text?.toString()
@@ -75,12 +96,21 @@ class HomeFragment : Fragment() {
 
         _binding.fragmentHomeLoginBtn.setOnClickListener{
 
-            homeViewModel.signIn(_binding.fragmentHomeEmailInput.text.toString().trim(), _binding.fragmentHomePasswordInput.text.toString().trim()).observe(viewLifecycleOwner, Observer {
-                it?.let {
-                    it.uid
-                    navigateDashboard()
-                }
-            })
+            if (signin) {
+                homeViewModel.signIn(_binding.fragmentHomeEmailInput.text.toString().trim(), _binding.fragmentHomePasswordInput.text.toString().trim()).observe(viewLifecycleOwner, Observer {
+                    it?.let {
+                        it.uid
+                        navigateDashboard()
+                    }
+                })
+            } else {
+                homeViewModel.signUp(_binding.fragmentHomeEmailInput.text.toString().trim(), _binding.fragmentHomePasswordInput.text.toString().trim()).observe(viewLifecycleOwner, Observer {
+                    it?.let {
+                        it.uid
+                        navigateDashboard()
+                    }
+                })
+            }
         }
     }
 
