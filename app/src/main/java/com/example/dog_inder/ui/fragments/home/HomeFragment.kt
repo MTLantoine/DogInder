@@ -1,12 +1,23 @@
 package com.example.dog_inder.ui.fragments.home
 
 import android.Manifest
+import android.app.KeyguardManager
+import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.hardware.biometrics.BiometricPrompt
+import android.os.Build
 import android.os.Bundle
+import android.os.CancellationSignal
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.MediatorLiveData
@@ -20,15 +31,38 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
 
 
 class HomeFragment : Fragment() {
+    private var cancellationSignal: CancellationSignal? = null;
+
+    private val authtificationCallbacks: BiometricPrompt.AuthenticationCallback
+        get() =
+            @RequiresApi(Build.VERSION_CODES.P)
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence?) {
+                    super.onAuthenticationError(errorCode, errString)
+                }
+
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult?) {
+                    super.onAuthenticationSucceeded(result)
+                    navigateDashboard()
+                }
+            }
     private var signin: Boolean = true
 
-    private val permissionResultLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { map ->
-        if (!map.values.contains(false)) {
-            getResultLauncher.launch(arrayOf(Manifest.permission.INTERNET, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE))
+    private val permissionResultLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { map ->
+            if (!map.values.contains(false)) {
+                getResultLauncher.launch(
+                    arrayOf(
+                        Manifest.permission.INTERNET,
+                        Manifest.permission.READ_EXTERNAL_STORAGE,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    )
+                )
+            }
         }
-    }
 
-    private val getResultLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {}
+    private val getResultLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {}
 
     private val homeViewModel: HomeViewModel by viewModel()
     private var _binding: HomeFragmentBinding by fragmentAutoCleared()
@@ -50,7 +84,7 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun validateForm(email: String?, password: String?) : Boolean {
+    private fun validateForm(email: String?, password: String?): Boolean {
         val isValidEmail: Boolean
         val isValidPassword: Boolean
         if (signin) {
@@ -64,13 +98,32 @@ class HomeFragment : Fragment() {
         return isValidEmail && isValidPassword
     }
 
+    @RequiresApi(Build.VERSION_CODES.P)
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         askForPermissions()
+        checkBiometricSupport()
+
+        _binding.fragmentHomeAuthBtn.setOnClickListener {
+            val biometricPrompt =
+                BiometricPrompt.Builder(activity)
+                    .setTitle("Title of prompt")
+                    .setSubtitle("Authentification is required")
+                    .setDescription("This app can use fingerprint protection to keep your data secure")
+                    .setNegativeButton("Cancel", ContextCompat.getMainExecutor(activity), DialogInterface.OnClickListener{ dialog, which ->
+                        Toast.makeText(
+                            activity,
+                            "Authentification canceled",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }).build()
+
+            biometricPrompt.authenticate(getCancellationSignal(), ContextCompat.getMainExecutor(activity), authtificationCallbacks)
+        }
 
         _binding.fragmentHomeChangeBtn.isEnabled = true
-        _binding.fragmentHomeChangeBtn.setOnClickListener{
+        _binding.fragmentHomeChangeBtn.setOnClickListener {
             if (signin) {
                 _binding.fragmentHomeChangeBtn.text = "Déjà un compte ? Se connecter"
                 _binding.fragmentHomeLoginBtn.text = "Créer un compte"
@@ -94,17 +147,23 @@ class HomeFragment : Fragment() {
             _binding.fragmentHomeLoginBtn.isEnabled = isValid
         }
 
-        _binding.fragmentHomeLoginBtn.setOnClickListener{
+        _binding.fragmentHomeLoginBtn.setOnClickListener {
 
             if (signin) {
-                homeViewModel.signIn(_binding.fragmentHomeEmailInput.text.toString().trim(), _binding.fragmentHomePasswordInput.text.toString().trim()).observe(viewLifecycleOwner, Observer {
+                homeViewModel.signIn(
+                    _binding.fragmentHomeEmailInput.text.toString().trim(),
+                    _binding.fragmentHomePasswordInput.text.toString().trim()
+                ).observe(viewLifecycleOwner, Observer {
                     it?.let {
                         it.uid
                         navigateDashboard()
                     }
                 })
             } else {
-                homeViewModel.signUp(_binding.fragmentHomeEmailInput.text.toString().trim(), _binding.fragmentHomePasswordInput.text.toString().trim()).observe(viewLifecycleOwner, Observer {
+                homeViewModel.signUp(
+                    _binding.fragmentHomeEmailInput.text.toString().trim(),
+                    _binding.fragmentHomePasswordInput.text.toString().trim()
+                ).observe(viewLifecycleOwner, Observer {
                     it?.let {
                         it.uid
                         navigateDashboard()
@@ -120,10 +179,54 @@ class HomeFragment : Fragment() {
         startActivity(dashboardActivity)
     }
 
+    private fun getCancellationSignal(): CancellationSignal {
+        cancellationSignal = CancellationSignal()
+        cancellationSignal?.setOnCancelListener {
+            Toast.makeText(
+                activity,
+                "Authentification was canceled by the user",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+
+        return cancellationSignal as CancellationSignal;
+    }
+
+    fun checkBiometricSupport(): Boolean {
+        val keyguardManager =
+            activity?.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+
+        if (!keyguardManager.isKeyguardSecure) {
+            Toast.makeText(
+                activity,
+                "Figerprint authentification is not enabled",
+                Toast.LENGTH_LONG
+            ).show()
+            return false
+        }
+
+        if (ActivityCompat.checkSelfPermission(
+                requireActivity(),
+                android.Manifest.permission.USE_BIOMETRIC
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            Toast.makeText(
+                activity,
+                "Figerprint authentification is not enabled",
+                Toast.LENGTH_LONG
+            ).show()
+            return false
+        }
+
+        return if (requireActivity().packageManager.hasSystemFeature(PackageManager.FEATURE_FINGERPRINT)) {
+            true
+        } else true
+    }
+
     override fun onCreateView(
-            inflater: LayoutInflater,
-            container: ViewGroup?,
-            savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
     ): View? {
         _binding = HomeFragmentBinding.inflate(inflater, container, false)
         return _binding.root
