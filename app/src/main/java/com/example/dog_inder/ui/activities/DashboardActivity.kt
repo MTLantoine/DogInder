@@ -6,10 +6,18 @@ import android.os.Bundle
 import android.view.View
 import android.widget.ImageButton
 import android.widget.ListView
+import android.widget.Toast
 import com.example.dog_inder.R
 import com.example.dog_inder.ui.adapter.ListAdapter
+import com.example.dog_inder.ui.services.ApiService
 import com.example.dog_inder.utils.model.Card
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import okhttp3.OkHttpClient
 import org.json.JSONObject
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import java.lang.Exception
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -17,19 +25,27 @@ class DashboardActivity : AppCompatActivity(), View.OnClickListener {
 
     private lateinit var mDislike: ImageButton
     private lateinit var mLike: ImageButton
-    private var url = "https://dog.ceo/api/breeds/image/random"
+    private var BASE_URL = "https://dog.ceo/api/breeds/image/random"
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+    override suspend fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dashboard)
 
-        AsyncTaskHandleJson().execute(url)
+        AsyncTaskHandleJson().execute(BASE_URL)
 
         mDislike = findViewById(R.id.dislike_btn)
         mLike = findViewById(R.id.like_btn)
 
         mDislike.setOnClickListener(this)
         mLike.setOnClickListener(this)
+
+        try {
+            val response = ApiClient.apiService.getImg()
+
+            println(response)
+        } catch (e: Exception) {
+            Toast.makeText(this@DashboardActivity, "An error occured", Toast.LENGTH_SHORT).show()
+        }
     }
 
     inner class AsyncTaskHandleJson : AsyncTask<String, String, String>() {
@@ -66,5 +82,29 @@ class DashboardActivity : AppCompatActivity(), View.OnClickListener {
 
     override fun onClick(v: View?) {
         AsyncTaskHandleJson().execute(url)
+    }
+
+    object ApiClient {
+        private const val BASE_URL: String = "https://dog.ceo/api/breeds/image/random"
+
+        private val gson : Gson by lazy {
+            GsonBuilder().setLenient().create()
+        }
+
+        private val httpClient : OkHttpClient by lazy {
+            OkHttpClient.Builder().build()
+        }
+
+        private val retrofit : Retrofit by lazy {
+            Retrofit.Builder()
+                    .baseUrl(BASE_URL)
+                    .client(httpClient)
+                    .addConverterFactory(GsonConverterFactory.create(gson))
+                    .build()
+        }
+
+        val apiService : ApiService by lazy {
+            retrofit.create(ApiService::class.java)
+        }
     }
 }

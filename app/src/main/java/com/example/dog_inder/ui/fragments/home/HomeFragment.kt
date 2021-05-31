@@ -133,6 +133,7 @@ class HomeFragment : Fragment() {
         permissionResultLauncher.launch(
             arrayOf(
                 Manifest.permission.INTERNET,
+                Manifest.permission.ACCESS_NETWORK_STATE,
                 Manifest.permission.CAMERA
             )
         )
