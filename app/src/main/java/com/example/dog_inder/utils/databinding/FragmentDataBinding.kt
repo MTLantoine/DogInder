@@ -1,4 +1,4 @@
-package com.example.dog_inder.utils
+package com.example.dog_inder.utils.databinding
 
 import androidx.fragment.app.Fragment
 import kotlin.properties.ReadWriteProperty

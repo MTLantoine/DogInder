@@ -1,4 +1,4 @@
-package com.example.dog_inder.utils
+package com.example.dog_inder.utils.databinding
 
 import android.os.Looper
 import android.view.LayoutInflater
@@ -11,7 +11,7 @@ import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
 inline fun <reified T : ViewDataBinding> AppCompatActivity.activityViewBinding(noinline initializer: (LayoutInflater) -> T) =
-    ViewBindingPropertyDelegate(this, initializer)
+        ViewBindingPropertyDelegate(this, initializer)
 
 class ViewBindingPropertyDelegate<T : ViewDataBinding>(
     private val activity: AppCompatActivity,

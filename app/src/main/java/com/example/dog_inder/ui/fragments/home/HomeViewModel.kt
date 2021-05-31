@@ -1,4 +1,4 @@
-package com.example.dog_inder.ui.home
+package com.example.dog_inder.ui.fragments.home
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData

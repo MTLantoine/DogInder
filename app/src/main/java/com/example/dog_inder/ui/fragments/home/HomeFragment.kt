@@ -1,8 +1,8 @@
-package com.example.dog_inder.ui.home
+package com.example.dog_inder.ui.fragments.home
 
+import android.Manifest
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -15,27 +15,22 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.observe
 import com.example.dog_inder.databinding.HomeFragmentBinding
 import com.example.dog_inder.ui.activities.DashboardActivity
-import com.example.dog_inder.utils.fragmentAutoCleared
+import com.example.dog_inder.utils.databinding.fragmentAutoCleared
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 
 class HomeFragment : Fragment() {
 
-    private val homeViewModel: HomeViewModel by viewModel()
-    private var _binding: HomeFragmentBinding by fragmentAutoCleared()
-
     private val permissionResultLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { map ->
         if (!map.values.contains(false)) {
-            // DO ACTION
-            getDocumentResultLauncher.launch("image/jpeg | image/png | image/png")
+            getResultLauncher.launch(arrayOf(Manifest.permission.INTERNET, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE))
         }
     }
 
-    private val getDocumentResultLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let {
-            Log.d("MyURI", uri.path!!)
-        }
-    }
+    private val getResultLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {}
+
+    private val homeViewModel: HomeViewModel by viewModel()
+    private var _binding: HomeFragmentBinding by fragmentAutoCleared()
 
     private val emailLiveData = MutableLiveData<String>()
     private val passwordLiveData = MutableLiveData<String>()
@@ -64,6 +59,8 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        askForPermissions()
+
         _binding.fragmentHomeEmailInput.doOnTextChanged { text, _, _, _ ->
             emailLiveData.value = text?.toString()
         }
@@ -77,12 +74,6 @@ class HomeFragment : Fragment() {
         }
 
         _binding.fragmentHomeLoginBtn.setOnClickListener{
-//            permissionResultLauncher.launch(
-//                    arrayOf(
-//                            Manifest.permission.READ_EXTERNAL_STORAGE,
-//                            Manifest.permission.WRITE_EXTERNAL_STORAGE
-//                    )
-//            )
 
             homeViewModel.signIn(_binding.fragmentHomeEmailInput.text.toString().trim(), _binding.fragmentHomePasswordInput.text.toString().trim()).observe(viewLifecycleOwner, Observer {
                 it?.let {
@@ -106,5 +97,14 @@ class HomeFragment : Fragment() {
     ): View? {
         _binding = HomeFragmentBinding.inflate(inflater, container, false)
         return _binding.root
+    }
+
+    fun askForPermissions() {
+        permissionResultLauncher.launch(
+            arrayOf(
+                Manifest.permission.INTERNET,
+                Manifest.permission.CAMERA
+            )
+        )
     }
 }
