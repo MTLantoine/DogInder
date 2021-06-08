@@ -48,12 +48,11 @@ class DashboardActivity : AppCompatActivity(), View.OnClickListener {
         mDislike.setOnClickListener(this)
         mLike.setOnClickListener(this)
 
-        getUsers().observe(this, Observer {
+        getImage().observe(this, Observer {
             it?.let { resource ->
                 when (resource.status) {
                     Status.SUCCESS -> {
-                        Toast.makeText(this, "Coucou", Toast.LENGTH_LONG).show()
-                        print(resource.data)
+                        print(resource.data?.message)
                     }
                     Status.ERROR -> {
                         Toast.makeText(this, it.message, Toast.LENGTH_LONG).show()
@@ -104,31 +103,7 @@ class DashboardActivity : AppCompatActivity(), View.OnClickListener {
         AsyncTaskHandleJson().execute(BASE_URL)
     }
 
-    object ApiClient {
-        private const val BASE_URL: String = "https://dog.ceo/api/breeds/image/random"
-
-        private val gson : Gson by lazy {
-            GsonBuilder().setLenient().create()
-        }
-
-        private val httpClient : OkHttpClient by lazy {
-            OkHttpClient.Builder().build()
-        }
-
-        private val retrofit : Retrofit by lazy {
-            Retrofit.Builder()
-                    .baseUrl(BASE_URL)
-                    .client(httpClient)
-                    .addConverterFactory(GsonConverterFactory.create(gson))
-                    .build()
-        }
-
-        val apiService : ApiService by lazy {
-            retrofit.create(ApiService::class.java)
-        }
-    }
-
-    fun getUsers() = liveData(Dispatchers.IO) {
+    fun getImage() = liveData(Dispatchers.IO) {
         emit(Resource.loading(data = null))
         var api = RetrofitBuilder.apiService;
         try {
