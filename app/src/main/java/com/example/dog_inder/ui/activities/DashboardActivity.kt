@@ -7,12 +7,20 @@ import android.view.View
 import android.widget.ImageButton
 import android.widget.ListView
 import android.widget.Toast
+import androidx.lifecycle.Observer
+import androidx.lifecycle.liveData
 import com.example.dog_inder.R
 import com.example.dog_inder.ui.adapter.ListAdapter
 import com.example.dog_inder.ui.services.ApiService
+import com.example.dog_inder.utils.http.Resource
+import com.example.dog_inder.utils.http.RetrofitBuilder
+import com.example.dog_inder.utils.http.Status
 import com.example.dog_inder.utils.model.Card
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import org.json.JSONObject
 import retrofit2.Retrofit
@@ -20,6 +28,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.lang.Exception
 import java.net.HttpURLConnection
 import java.net.URL
+import kotlin.coroutines.CoroutineContext
 
 class DashboardActivity : AppCompatActivity(), View.OnClickListener {
 
@@ -27,7 +36,7 @@ class DashboardActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var mLike: ImageButton
     private var BASE_URL = "https://dog.ceo/api/breeds/image/random"
 
-    override suspend fun onCreate(savedInstanceState: Bundle?) {
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dashboard)
 
@@ -39,13 +48,24 @@ class DashboardActivity : AppCompatActivity(), View.OnClickListener {
         mDislike.setOnClickListener(this)
         mLike.setOnClickListener(this)
 
-        try {
-            val response = ApiClient.apiService.getImg()
+        getUsers().observe(this, Observer {
+            it?.let { resource ->
+                when (resource.status) {
+                    Status.SUCCESS -> {
+                        Toast.makeText(this, "Coucou", Toast.LENGTH_LONG).show()
+                        print(resource.data)
+                    }
+                    Status.ERROR -> {
+                        Toast.makeText(this, it.message, Toast.LENGTH_LONG).show()
+                        print(it.message)
+                    }
+                    Status.LOADING -> {
+                        print("Loading")
+                    }
+                }
+            }
+        })
 
-            println(response)
-        } catch (e: Exception) {
-            Toast.makeText(this@DashboardActivity, "An error occured", Toast.LENGTH_SHORT).show()
-        }
     }
 
     inner class AsyncTaskHandleJson : AsyncTask<String, String, String>() {
@@ -81,7 +101,7 @@ class DashboardActivity : AppCompatActivity(), View.OnClickListener {
     }
 
     override fun onClick(v: View?) {
-        AsyncTaskHandleJson().execute(url)
+        AsyncTaskHandleJson().execute(BASE_URL)
     }
 
     object ApiClient {
@@ -105,6 +125,16 @@ class DashboardActivity : AppCompatActivity(), View.OnClickListener {
 
         val apiService : ApiService by lazy {
             retrofit.create(ApiService::class.java)
+        }
+    }
+
+    fun getUsers() = liveData(Dispatchers.IO) {
+        emit(Resource.loading(data = null))
+        var api = RetrofitBuilder.apiService;
+        try {
+            emit(Resource.success(data = api.getImg()))
+        } catch (exception: Exception) {
+            emit(Resource.error(data = null, message = exception.message ?: "Error Occurred!"))
         }
     }
 }
