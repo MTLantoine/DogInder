@@ -1,3 +1,14 @@
 package com.example.dog_inder.utils.model
 
-data class Card(val img: String)
+class Card {
+
+    private var image = ""
+
+    constructor(image: String) {
+        this.image = image
+    }
+
+    fun getImage(): String {
+        return image
+    }
+}
