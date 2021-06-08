@@ -16,8 +16,8 @@
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
         android:theme="@style/Theme.DogInder">
-        <activity android:name=".ui.activities.MainActivity"></activity>
-        <activity android:name=".ui.activities.DashboardActivity">
+        <activity android:name=".ui.activities.DashboardActivity"></activity>
+        <activity android:name=".ui.activities.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
