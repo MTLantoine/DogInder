@@ -1,124 +1,82 @@
 package com.example.dog_inder.ui.activities
 
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.view.animation.LinearInterpolator
-import android.widget.ImageButton
-import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.liveData
+import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.DefaultItemAnimator
-import androidx.recyclerview.widget.DiffUtil
 import com.example.dog_inder.ui.adapter.CardStackAdapter
-import com.example.dog_inder.ui.adapter.CardStackCallback
-import com.example.dog_inder.utils.databinding.activityViewBinding
 import com.example.dog_inder.utils.model.Card
 import com.yuyakaido.android.cardstackview.*
 import java.util.*
-import androidx.lifecycle.Observer
-import androidx.lifecycle.liveData
 import com.example.dog_inder.R
-import com.example.dog_inder.ui.adapter.ListAdapter
-import com.example.dog_inder.ui.services.ApiService
 import com.example.dog_inder.utils.http.Resource
 import com.example.dog_inder.utils.http.RetrofitBuilder
 import com.example.dog_inder.utils.http.Status
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import okhttp3.OkHttpClient
-import org.json.JSONObject
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-import java.lang.Exception
-import java.net.HttpURLConnection
-import java.net.URL
-import kotlin.coroutines.CoroutineContext
 
-class DashboardActivity : AppCompatActivity(), View.OnClickListener {
+class DashboardActivity : AppCompatActivity() {
 
-//
-//    private lateinit var mDislike: ImageButton
-//    private lateinit var mLike: ImageButton
-//    private var BASE_URL = "https://dog.ceo/api/breeds/image/random"
-
-    private val TAG = "DashboardActivity"
     private lateinit var manager: CardStackLayoutManager
     private lateinit var adapter: CardStackAdapter
+    private val items: MutableList<Card> = ArrayList<Card>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dashboard)
         var cardStackView: CardStackView = findViewById(R.id.card_stack_view)
 
-//        mDislike = findViewById(R.id.dislike_btn)
-//        mLike = findViewById(R.id.like_btn)
-
-//        mDislike.setOnClickListener(this)
-//        mLike.setOnClickListener(this)
-
         manager = CardStackLayoutManager(this, object : CardStackListener {
             override fun onCardDragging(
                 direction: Direction,
                 ratio: Float
-            ) {
-                Log.d(
-                    TAG,
-                    "onCardDragging: d=" + direction.name + " ratio=" + ratio
-                )
-            }
+            ) {}
 
             override fun onCardSwiped(direction: Direction) {
-                Log.d(
-                    TAG,
-                    "onCardSwiped: p=" + manager.topPosition + " d=" + direction
-                )
                 if (direction == Direction.Right) {
-                    Toast.makeText(this@DashboardActivity, "Direction Right", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@DashboardActivity, "LIKE !", Toast.LENGTH_SHORT).show()
                 }
                 if (direction == Direction.Top) {
-                    Toast.makeText(this@DashboardActivity, "Direction Top", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@DashboardActivity, "LIKE !", Toast.LENGTH_SHORT).show()
                 }
                 if (direction == Direction.Left) {
-                    Toast.makeText(this@DashboardActivity, "Direction Left", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@DashboardActivity, "DISLIKE !", Toast.LENGTH_SHORT).show()
                 }
                 if (direction == Direction.Bottom) {
-                    Toast.makeText(this@DashboardActivity, "Direction Bottom", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@DashboardActivity, "DISLIKE !", Toast.LENGTH_SHORT).show()
                 }
 
-                // Paginating
-                if (manager.topPosition == adapter.itemCount - 5) {
-                    paginate()
-                }
+                getImage().observe(this@DashboardActivity, Observer {
+                    it?.let { resource ->
+                        when (resource.status) {
+                            Status.SUCCESS -> {
+                                var img: String? = resource.data?.message
+                                img?.let { it1 -> Card(it1) }?.let { it2 -> items.add(it2) }
+                            }
+                            Status.ERROR -> {
+                                Toast.makeText(this@DashboardActivity, it.message, Toast.LENGTH_LONG).show()
+                            }
+                            Status.LOADING -> {
+                                Toast.makeText(this@DashboardActivity, "Loading ...", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                })
             }
 
-            override fun onCardRewound() {
-                Log.d(TAG, "onCardRewound: " + manager.topPosition)
-            }
+            override fun onCardRewound() {}
 
-            override fun onCardCanceled() {
-                Log.d(TAG, "onCardRewound: " + manager.topPosition)
-            }
+            override fun onCardCanceled() {}
 
-            override fun onCardAppeared(view: View, position: Int) {
-                val tv: ImageView = view.findViewById(R.id.item_image)
-                Log.d(
-                    TAG,
-                    "onCardAppeared: " + position + ", nama: " + tv.drawable
-                )
-            }
+            override fun onCardAppeared(view: View, position: Int) {}
 
-            override fun onCardDisappeared(view: View, position: Int) {
-                val tv: ImageView = view.findViewById(R.id.item_image)
-                Log.d(
-                    TAG,
-                    "onCardAppeared: " + position + ", nama: " + tv.drawable
-                )
-            }
-        })
+            override fun onCardDisappeared(view: View, position: Int) {}
+        }).apply {
+            setDirections(listOf(Direction.Right, Direction.Left))
+        }
 
         manager.setStackFrom(StackFrom.None)
         manager.setVisibleCount(3)
@@ -136,26 +94,39 @@ class DashboardActivity : AppCompatActivity(), View.OnClickListener {
         cardStackView.itemAnimator = DefaultItemAnimator()
     }
 
-    private fun paginate() {
-        val old: List<Card> = adapter.getItems()
-        val newCard: List<Card> = addList()
-        val callback = CardStackCallback(old, newCard)
-        val result = DiffUtil.calculateDiff(callback)
-        adapter.setItems(newCard)
-        result.dispatchUpdatesTo(adapter)
-    }
-
     private fun addList(): List<Card> {
-        val items: MutableList<Card> = ArrayList<Card>()
-        items.add(Card("https://i.picsum.photos/id/502/200/300.jpg?hmac=aHrprSZ5m8KmqTIrgi4dr8YmRjrN_BppdP5jCNrXB0E"))
-        items.add(Card("https://i.picsum.photos/id/502/200/300.jpg?hmac=aHrprSZ5m8KmqTIrgi4dr8YmRjrN_BppdP5jCNrXB0E"))
-        items.add(Card("https://i.picsum.photos/id/502/200/300.jpg?hmac=aHrprSZ5m8KmqTIrgi4dr8YmRjrN_BppdP5jCNrXB0E"))
-        items.add(Card("https://i.picsum.photos/id/502/200/300.jpg?hmac=aHrprSZ5m8KmqTIrgi4dr8YmRjrN_BppdP5jCNrXB0E"))
-        items.add(Card("https://i.picsum.photos/id/502/200/300.jpg?hmac=aHrprSZ5m8KmqTIrgi4dr8YmRjrN_BppdP5jCNrXB0E"))
+        getImage().observe(this, Observer {
+            it?.let { resource ->
+                when (resource.status) {
+                    Status.SUCCESS -> {
+                        var img: String? = resource.data?.message
+                        img?.let { it1 -> Card(it1) }?.let { it2 -> items.add(it2) }
+                    }
+                    Status.ERROR -> {
+                        Toast.makeText(this, it.message, Toast.LENGTH_LONG).show()
+                    }
+                    Status.LOADING -> {
+                        Toast.makeText(this, "Loading ...", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        })
+        items.add(Card("https://images.dog.ceo//breeds//bulldog-english//jager-2.jpg"))
+        items.add(Card("https://images.dog.ceo//breeds//vizsla//n02100583_854.jpg"))
+        items.add(Card("https://images.dog.ceo//breeds//labradoodle//labradoodle-forrest.png"))
+        items.add(Card("https://images.dog.ceo//breeds//otterhound//n02091635_1606.jpg"))
+        items.add(Card("https://images.dog.ceo//breeds//terrier-american//n02093428_1108.jpg"))
         return items
     }
 
-    override fun onClick(v: View?) {
-        TODO("Not yet implemented")
+    private fun getImage() = liveData(Dispatchers.IO) {
+        emit(Resource.loading(data = null))
+        var api = RetrofitBuilder.apiService;
+        try {
+            emit(Resource.success(data = api.getImg()))
+        } catch (exception: Exception) {
+            emit(Resource.error(data = null, message = exception.message ?: "Error Occurred!"))
+        }
     }
+
 }
